@@ -1,31 +1,34 @@
 using UnityEngine;
 
-[RequireComponent(typeof(BoxCollider))]
+[RequireComponent(typeof(BoxCollider2D))]
 public class PlatformerElevator : MonoBehaviour
 {
-    public BoxCollider boxTriggerCollider;
     public Transform topPoint;
     public Transform bottomPoint;
-    public float speed = 2f;     
+    public float speed = 2f;
     public KeyCode interactKey = KeyCode.E;
 
     private bool playerInside = false;
-    private bool goingUp = true;
+    private bool goingUp = false;
     private bool isMoving = false;
 
     private Transform player;
+    private BoxCollider2D boxTriggerCollider;
 
     private void Awake()
     {
-        boxTriggerCollider = GetComponent<BoxCollider>();
+        boxTriggerCollider = GetComponent<BoxCollider2D>();
     }
 
     void Update()
     {
-        if (playerInside && Input.GetKeyDown(interactKey) && !isMoving)
+        if (playerInside && !isMoving)
         {
-            isMoving = true;
-            goingUp = !goingUp;
+            if (Input.GetKeyDown(interactKey))
+            {
+                isMoving = true;
+                goingUp = !goingUp;
+            }
         }
 
         if (isMoving)
