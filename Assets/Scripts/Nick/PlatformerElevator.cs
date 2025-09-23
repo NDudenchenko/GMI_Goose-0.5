@@ -61,4 +61,9 @@ public class PlatformerElevator : MonoBehaviour
             player = null;
         }
     }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        //Destroy(this);
+    }
 }
