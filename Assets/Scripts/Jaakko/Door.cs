@@ -2,7 +2,6 @@ using UnityEngine;
 
 namespace AG3958
 {
-
     [RequireComponent (typeof(Collider2D))]
     public class Door : MonoBehaviour
     {

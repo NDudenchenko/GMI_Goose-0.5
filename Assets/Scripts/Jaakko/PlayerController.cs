@@ -34,7 +34,7 @@ namespace AG3958
         [SerializeField] private float jumpPower = 7.5f;
         [SerializeField] private float coyoteDuration = 0.5f;
 
-        // Editor param-derived helper variables
+        // Editor param-derived variables
         private Vector2 horizontalForce;
         private Vector2 jumpForce;
         private Vector2 baseJumpForce;
@@ -70,7 +70,8 @@ namespace AG3958
             _rightEdge = new Vector2(transform.position.x + (transform.localScale.x / 2) + groundCheckRayOffset, transform.position.y);
             groundCheckRayDist = (transform.localScale.y / 2) + 0.05f;
 
-            if (jumpCooldown > 0.25f && (Physics2D.Raycast(_leftEdge, Vector2.down, groundCheckRayDist, _envLayerMask) | Physics2D.Raycast(_rightEdge, Vector2.down, groundCheckRayDist, _envLayerMask)))
+            if (jumpCooldown > 0.25f && (Physics2D.Raycast(_leftEdge, Vector2.down, groundCheckRayDist, _envLayerMask)
+                | Physics2D.Raycast(_rightEdge, Vector2.down, groundCheckRayDist, _envLayerMask)))
             {
                 StopCoroutine(CoyoteTime());
                 jumpForce = baseJumpForce;
@@ -92,7 +93,7 @@ namespace AG3958
                 else if (Physics2D.Raycast(_rightEdge, Vector2.right, groundCheckRayOffset * 20, _envLayerMask))
                     jumpForce = wallJumpForceLeft;
                 else jumpForce = baseJumpForce;
-                    coyoteTimeLeft -= Time.deltaTime;
+                coyoteTimeLeft -= Time.deltaTime;
                 yield return new WaitForEndOfFrame();
             }
             isGrounded = false;
