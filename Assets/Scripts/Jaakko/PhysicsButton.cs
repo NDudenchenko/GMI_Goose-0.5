@@ -5,34 +5,34 @@ namespace AG3958
     [RequireComponent(typeof(Collider2D),typeof(SpriteRenderer))]
     public class PhysicsButton : MonoBehaviour
     {
-        [SerializeField] private Door door;
-        [SerializeField] private bool isOneShot;
-        public bool IsOneShot { get { return isOneShot; } }
-        [SerializeField] private bool isEnabled;
-        [SerializeField] private Sprite buttonSpriteEnabled;
-        [SerializeField] private Sprite buttonSpriteDisabled;
-        private SpriteRenderer buttonSpriteR;
+        [SerializeField] private Door _door;
+        [SerializeField] private bool _isOneShot;
+        public bool IsOneShot { get { return _isOneShot; } }
+        [SerializeField] private bool _isEnabled;
+        [SerializeField] private Sprite _buttonSpriteEnabled;
+        [SerializeField] private Sprite _buttonSpriteDisabled;
+        private SpriteRenderer _buttonSpriteR;
 
 
         private void Awake()
         {
-            buttonSpriteR = this.gameObject.GetComponent<SpriteRenderer>();
+            _buttonSpriteR = this.gameObject.GetComponent<SpriteRenderer>();
         }
 
         private void OnTriggerEnter2D(Collider2D collision)
         {
-            if (isEnabled)
+            if (_isEnabled)
             {
-                door.ToggleMove();
-                isEnabled = false;
-                buttonSpriteR.sprite = buttonSpriteDisabled;
+                _door.ToggleMove();
+                _isEnabled = false;
+                _buttonSpriteR.sprite = _buttonSpriteDisabled;
             }
         }
 
         public void Reenable()
         {
-            isEnabled = true;
-            buttonSpriteR.sprite = buttonSpriteEnabled;
+            _isEnabled = true;
+            _buttonSpriteR.sprite = _buttonSpriteEnabled;
         }
     }
 
