@@ -1,36 +1,37 @@
-using System;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class InvisibleWallDetection : MonoBehaviour
+namespace AH4063
 {
-    BoxCollider2D collision;
-
-    [SerializeField]
-    private UnityEvent OnWallRevealed;
+    public class InvisibleWallDetection : MonoBehaviour
+    {
+        public UnityEvent onWallRevealed;
     
-    private void Awake()
-    {
-        collision = GetComponent<BoxCollider2D>();
-    }
-
-    void Start()
-    {
-        
-    }
-
-    void Update()
-    {
-        
-    }
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        Debug.Log(other.gameObject.name);
-        if (other.CompareTag("Player"))
+        private BoxCollider2D _collision;
+    
+        private void Awake()
         {
-            OnWallRevealed.Invoke();
-            Destroy(this.gameObject);
+            _collision = GetComponent<BoxCollider2D>();
+        }
+
+        void Start()
+        {
+        
+        }
+
+        void Update()
+        {
+        
+        }
+
+        private void OnTriggerEnter2D(Collider2D other)
+        {
+            Debug.Log(other.gameObject.name);
+            if (other.CompareTag("Player"))
+            {
+                onWallRevealed.Invoke();
+                Destroy(this.gameObject);
+            }
         }
     }
 }

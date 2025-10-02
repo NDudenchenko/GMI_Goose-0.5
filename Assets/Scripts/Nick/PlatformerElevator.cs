@@ -1,69 +1,65 @@
 using UnityEngine;
 
-[RequireComponent(typeof(BoxCollider2D))]
-public class PlatformerElevator : MonoBehaviour
+namespace AH4063
 {
-    public Transform topPoint;
-    public Transform bottomPoint;
-    public float speed = 2f;
-    public KeyCode interactKey = KeyCode.E;
-
-    private bool playerInside = false;
-    private bool goingUp = false;
-    private bool isMoving = false;
-
-    private Transform player;
-    private BoxCollider2D boxTriggerCollider;
-
-    private void Awake()
+    [RequireComponent(typeof(BoxCollider2D))]
+    public class PlatformerElevator : MonoBehaviour
     {
-        boxTriggerCollider = GetComponent<BoxCollider2D>();
-    }
+        [SerializeField]
+        private Transform topPoint, bottomPoint;
+        [SerializeField]
+        private float speed = 2f;
+        [SerializeField]
+        private KeyCode interactKey = KeyCode.E;
 
-    void Update()
-    {
-        if (playerInside && !isMoving)
+        private BoxCollider2D _boxCollider;
+        private bool _playerInside = false;
+        private bool _goingUp = false;
+        private bool _isMoving = false;
+
+        private void Awake()
         {
-            if (Input.GetKeyDown(interactKey))
+            _boxCollider = GetComponent<BoxCollider2D>();
+        }
+
+        void Update()
+        {
+            if (_playerInside && !_isMoving)
             {
-                isMoving = true;
-                goingUp = !goingUp;
+                if (Input.GetKeyDown(interactKey))
+                {
+                    _isMoving = true;
+                    _goingUp = !_goingUp;
+                }
+            }
+
+            if (_isMoving)
+            {
+                Transform target = _goingUp ? topPoint : bottomPoint;
+                transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+
+                if (Vector2.Distance(transform.position, target.position) < 0.01f)
+                {
+                    transform.position = target.position;
+                    _isMoving = false;
+                }
             }
         }
 
-        if (isMoving)
+        private void OnTriggerEnter2D(Collider2D other)
         {
-            Transform target = goingUp ? topPoint : bottomPoint;
-            transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
-
-            if (Vector2.Distance(transform.position, target.position) < 0.01f)
+            if (other.CompareTag("Player"))
             {
-                transform.position = target.position;
-                isMoving = false;
+                _playerInside = true;
             }
         }
-    }
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
+        private void OnTriggerExit2D(Collider2D other)
         {
-            playerInside = true;
-            player = other.transform;
+            if (other.CompareTag("Player"))
+            {
+                _playerInside = false;
+            }
         }
-    }
-
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            playerInside = false;
-            player = null;
-        }
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        //Destroy(this);
     }
 }

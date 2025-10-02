@@ -1,21 +1,24 @@
 using UnityEngine;
 
-public class SoundsManager : MonoBehaviour
+namespace AH4063
 {
-    public AudioSource invisibleWallRevealedSound;
+    public class SoundsManager : MonoBehaviour
+    {
+        public AudioSource invisibleWallRevealedSound;
     
-    void Start()
-    {
+        void Start()
+        {
         
-    }
+        }
 
-    void Update()
-    {
+        void Update()
+        {
         
-    }
+        }
 
-    public void PlayInvisibleWallRevealedSound()
-    {
-        invisibleWallRevealedSound?.Play();
+        public void PlayInvisibleWallRevealedSound()
+        {
+            invisibleWallRevealedSound?.Play();
+        }
     }
 }
