@@ -12,7 +12,7 @@ namespace AG3958
     /// <summary>
     /// Basic control and movement script for a 2D player entity. Attached object must have a 2D Rigidbody.
     /// </summary>
-    [RequireComponent (typeof(Rigidbody2D), typeof(Collider2D))]
+    [RequireComponent (typeof(Rigidbody2D), typeof(Collider2D), typeof(PlayerCore))]
     public class PlayerController : MonoBehaviour
     {
         // Object references
@@ -21,6 +21,8 @@ namespace AG3958
         private LayerMask _envLayerMask;
         private Vector2 _leftEdge;
         private Vector2 _rightEdge;
+        private SpriteRenderer _playerSprite;
+        private PlayerCore _playerCore;
 
         // Script-local state identifiers and helpers
         private bool _applyMoveRight = false;
@@ -28,18 +30,35 @@ namespace AG3958
         private bool _jumpBuffer = false;
         private bool _fireBuffer = false;
         private bool _isGrounded;
-        private bool _coyoteActive;
         private float _jumpCooldown = 0f;
         private float _groundCheckRayDist;
         private float _groundCheckRayOffset;
         private float _physMatFriction;
+        private Color _playerColor;
+        private bool _coyoteActive = false;
+        private bool _boosterActive = false;
+        private bool _boosterGraceActive = false;
+
+        // Properties for animation state script
+        public bool ApplyMoveRight { get { return _applyMoveRight; } }
+        public bool ApplyMoveLeft {  get { return _applyMoveLeft; } }
+        public bool IsGrounded { get { return _isGrounded; } }
+        public bool CoyoteActive { get { return _coyoteActive; } }
+        public bool BoosterActive { get { return _boosterActive; } }
+        public bool BoosterGraceActive { get { return _boosterGraceActive; } }
 
         // Editor parameters
+        [Header("Basic Movement")]
         [SerializeField] private float _movementSpeed = 3.0f;
         [SerializeField] private float _maximumSpeed = 5.0f;
         [SerializeField] private float _jumpPower = 7.5f;
         [SerializeField] private float _coyoteDuration = 0.5f;
         [SerializeField] private float _wallSlideFriction = 1.0f;
+        [Header("Speed Booster")]
+        [SerializeField] private float _boosterImpulseSpeed; // movement force change
+        [SerializeField] private float _boosterSpeed; // maximum speed change
+        [SerializeField] private float _boosterActivationTime;
+        [SerializeField] private float _boosterGraceTime;
 
         // Editor param-derived variables
         private Vector2 _horizontalForce;
@@ -48,9 +67,14 @@ namespace AG3958
         private Vector2 _wallJumpForceRight;
         private Vector2 _wallJumpForceLeft;
         private float _resetCoyoteDuration;
+        private float _originalMoveSpeed;
+        private float _originalMaxSpeed; // store value of normal maximum speed in awake
+        private float _boosterTimer = 0.0f;
+        private float _boosterGrace = 0.0f;
 
         private void Awake()
         {
+            _playerCore = GetComponent<PlayerCore>();
             _rb = GetComponent<Rigidbody2D>();
             _coll = GetComponent<Collider2D>();
             _envLayerMask = LayerMask.GetMask("Default");
@@ -58,7 +82,8 @@ namespace AG3958
             _physMatFriction = _rb.sharedMaterial.friction;
             _leftEdge = new Vector2(transform.position.x - (transform.localScale.x / 2) - _groundCheckRayOffset, transform.position.y);
             _rightEdge = new Vector2(transform.position.x + (transform.localScale.x / 2) + _groundCheckRayOffset, transform.position.y);
-            _coyoteActive = false;
+            _playerSprite = GetComponent<SpriteRenderer>();
+            _playerColor = _playerSprite.color;
             _resetCoyoteDuration = _coyoteDuration;
             _groundCheckRayDist = (transform.localScale.y / 2) + 0.05f;
             _horizontalForce = new Vector2(_movementSpeed, 0);
@@ -66,6 +91,8 @@ namespace AG3958
             _jumpForce = _baseJumpForce;
             _wallJumpForceRight = new Vector2(_jumpPower * 0.75f, _jumpPower);
             _wallJumpForceLeft = new Vector2(-_jumpPower * 0.75f, _jumpPower);
+            _originalMoveSpeed = _movementSpeed;
+            _originalMaxSpeed = _maximumSpeed;
         }
 
         private void Update()
@@ -76,6 +103,33 @@ namespace AG3958
             if (Input.GetKey(KeyCode.D) ) { _applyMoveRight = true; }
             else _applyMoveRight = false;
             if (Input.GetKeyDown(KeyCode.Space) && _isGrounded) { _jumpBuffer = true; }
+
+            if (_playerCore.HasSpeedBooster)
+            {
+                if ((_rb.linearVelocityX >= _maximumSpeed * 0.9f && _isGrounded) || (_rb.linearVelocityX <= _maximumSpeed * -0.9f && _isGrounded))
+                {
+                    _boosterTimer += Time.deltaTime;
+                }
+                else { _boosterTimer = 0.0f; }
+                if (_boosterTimer >= _boosterActivationTime && !_boosterActive)
+                {
+                    ActivateBooster();
+                }
+                if ((_boosterActive && _rb.linearVelocityX > 0.0f && !_applyMoveRight)
+                    || (_boosterActive && _rb.linearVelocityX < 0.0f && !_applyMoveLeft)
+                    || _boosterActive && _rb.linearVelocityX == 0.0f)
+                {
+                    _boosterActive = false;
+                    _boosterGraceActive = true;
+                }
+                if (_boosterGraceActive) _boosterGrace += Time.deltaTime;
+                if (_boosterGrace >= _boosterGraceTime)
+                {
+                    _boosterGraceActive = false;
+                    DeactivateBooster();
+                    _boosterGrace = 0.0f;
+                }
+            }
         }
 
         private void FixedUpdate()
@@ -110,6 +164,26 @@ namespace AG3958
             else if (_isGrounded) StartCoroutine(CoyoteTime());
         }
 
+        private void ActivateBooster()
+        {
+            _movementSpeed = _boosterImpulseSpeed;
+            _maximumSpeed = _boosterSpeed;
+            _horizontalForce = new Vector2(_movementSpeed, 0.0f);
+            _boosterActive = true;
+            _playerSprite.color = Color.cyan;
+        }
+
+        private void DeactivateBooster()
+        {
+            _playerSprite.color = _playerColor;
+            _movementSpeed = _originalMoveSpeed;
+            _maximumSpeed = _originalMaxSpeed;
+            _horizontalForce = new Vector2(_movementSpeed, 0.0f);
+        }
+
+        /// <summary>
+        /// Coroutine that implements coyote time, wall jumping and wall sliding on Fixed Update cycle.
+        /// </summary>
         private IEnumerator CoyoteTime()
         {
             _coyoteActive = true;
