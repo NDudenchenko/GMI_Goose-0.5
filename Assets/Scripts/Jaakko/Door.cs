@@ -1,9 +1,10 @@
 using UnityEngine;
+using EditorAttributes;
 
 namespace AG3958
 {
     [RequireComponent (typeof(Collider2D))]
-    public class Door : MonoBehaviour
+    public class Door : MonoBehaviour, IPhysicsInteractable
     {
         [SerializeField] private PhysicsButton _btn;
         [SerializeField] private Transform _target;
@@ -30,12 +31,12 @@ namespace AG3958
                 {
                     _moving = false;
                     _target.position = _originalPosition;
-                    if (!_btn.IsOneShot) _btn.Reenable();
+                    if (_btn != null && !_btn.IsOneShot) _btn.Reenable();
                 }
             }
         }
 
-        public void ToggleMove()
+        public void Interact()
         {
             _originalPosition = transform.position;
             _moving = true;

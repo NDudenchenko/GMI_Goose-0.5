@@ -391,7 +391,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f9b980dfecd2594289c1dba4dc686cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _door: {fileID: 532976915}
+  _connectedInteractable: {fileID: 532976915}
   _isOneShot: 0
   _isEnabled: 1
   _buttonSpriteEnabled: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
