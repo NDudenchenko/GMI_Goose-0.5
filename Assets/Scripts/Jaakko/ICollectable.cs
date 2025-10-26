@@ -9,6 +9,7 @@ namespace AG3958
 		float CValue { get; }
 
 		void OnTriggerEnter2D(Collider2D collision);
+		void CollectObject();
 	}
 
 }
