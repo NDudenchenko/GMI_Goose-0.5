@@ -12,12 +12,6 @@ namespace AG3958
 
         private PlayerCore _playerCore;
 
-        public Checkpoint(string id, Vector2 point)
-        {
-            _checkpointID = id;
-            _checkpointTarget = point;
-        }
-
         private void Start()
         {
             _checkpointTarget = transform.position;
