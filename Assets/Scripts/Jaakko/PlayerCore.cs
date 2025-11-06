@@ -27,10 +27,16 @@ namespace AG3958
         [SerializeField] private bool _hasSpeedBooster;
         public bool HasSpeedBooster { get { return _hasSpeedBooster; } }
 
+        [Header("Debugging")]
+        [SerializeField] private Checkpoint _initialCheckpoint;
+        [SerializeField, ReadOnly] private Checkpoint _previousCheckpoint;
+        public Checkpoint PreviousCheckpoint { get { return _previousCheckpoint; } }
+
         private void Awake()
         {
             _currentHealth = _maxHealth;
             _currentMana = _maxMana;
+            _previousCheckpoint = _initialCheckpoint;
 
             HealthChangeEvent += OnHealthChanged;
             ManaChangeEvent += OnManaChanged;
@@ -39,17 +45,27 @@ namespace AG3958
 
         private void OnHealthChanged(float value)
         {
-            _currentHealth += value;
+            if (_currentHealth + value > _maxHealth) _currentHealth = _maxHealth;
+            else if (_currentHealth + value < 0) _currentHealth = 0;
+            else _currentHealth += value;
         }
 
         private void OnManaChanged(float value)
         {
-            _currentMana += value;
+            if (_currentMana + value > _maxMana) _currentMana = _maxMana;
+            else if (_currentMana + value < 0) _currentMana = 0;
+            else _currentMana += value;
         }
 
         private void OnPointsChanged(float value)
         {
-            _points += value;
+            if (_points + value < 0) _points = 0;
+            else _points += value;
+        }
+
+        public void SetCheckpoint(Checkpoint point)
+        {
+            _previousCheckpoint = point;
         }
     }
 }

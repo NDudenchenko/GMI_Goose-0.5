@@ -6,8 +6,8 @@ namespace AG3958
     [RequireComponent(typeof(Collider2D),typeof(SpriteRenderer))]
     public class PhysicsButton : MonoBehaviour
     {
-        //[SerializeField, TypeFilter(typeof(IPhysicsInteractable))] private Component _editorConnectedInteractable;
-        [SerializeField] private Door _connectedInteractable;
+        [SerializeField] private GameObject _editorConnectedInteractable;
+        private IPhysicsInteractable _connectedInteractable;
         [SerializeField] private bool _isOneShot;
         public bool IsOneShot { get { return _isOneShot; } }
         [SerializeField] private bool _isEnabled;
@@ -19,7 +19,11 @@ namespace AG3958
         private void Awake()
         {
             _buttonSpriteR = this.gameObject.GetComponent<SpriteRenderer>();
-            //_connectedInteractable = (IPhysicsInteractable) _editorConnectedInteractable;
+            if (_editorConnectedInteractable.TryGetComponent<IPhysicsInteractable>(out IPhysicsInteractable interactable))
+            {
+                _connectedInteractable = interactable;
+            }
+            else Debug.LogWarning("GameObject attached to PhysicsButton " + this.gameObject.name + " does not have an IPhysicsInteractable component!");
         }
 
         private void OnTriggerEnter2D(Collider2D collision)
