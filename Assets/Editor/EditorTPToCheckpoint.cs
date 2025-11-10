@@ -10,7 +10,7 @@ namespace AG3958
         private PlayerCore _playerCore;
 
         [MenuItem("Tools/Jaakko/TP to Checkpoint")]
-        static void Init()
+        public static void Init()
         {
             EditorWindow window = GetWindow<EditorTPToCheckpoint>();
             window.position = new Rect(50f,50f,200f,50f);
@@ -54,4 +54,5 @@ namespace AG3958
         }
     } 
 }
+
 #endif

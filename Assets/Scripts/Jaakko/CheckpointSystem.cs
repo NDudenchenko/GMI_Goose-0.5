@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace AG3958
@@ -15,7 +14,7 @@ namespace AG3958
         {
             _checkpointList = FindObjectsByType<Checkpoint>(FindObjectsSortMode.None);
             Array.Sort(_checkpointList);
-            foreach (Checkpoint checkpoint in _checkpointList) Debug.Log(checkpoint);
+            //foreach (Checkpoint checkpoint in _checkpointList) Debug.Log(checkpoint);
             _playerCore = FindFirstObjectByType<PlayerCore>();
         }
 
