@@ -24,6 +24,21 @@ namespace AG3958
         public float PlayerPoints { get { return _points; } }
 
         [Header("Progression Checks")]
+        [SerializeField] private bool _hasWeapon;
+        public bool HasWeapon { get { return _hasWeapon; } }
+
+        [SerializeField] private bool _hasMagic;
+        public bool HasMagic { get { return _hasMagic; } }
+
+        [SerializeField] private bool _hasWallHang;
+        public bool HasWallHang { get { return _hasWallHang; } }
+
+        [SerializeField] private bool _hasCharge;
+        public bool HasCharge { get { return _hasCharge; } }
+
+        [SerializeField] private bool _hasVolcanicEruption;
+        public bool HasVolcanicEruption { get { return _hasVolcanicEruption; } }
+
         [SerializeField] private bool _hasSpeedBooster;
         public bool HasSpeedBooster { get { return _hasSpeedBooster; } }
 

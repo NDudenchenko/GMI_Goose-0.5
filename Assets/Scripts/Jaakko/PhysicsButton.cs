@@ -23,7 +23,7 @@ namespace AG3958
             {
                 _connectedInteractable = interactable;
             }
-            else Debug.LogWarning("GameObject attached to PhysicsButton " + this.gameObject.name + " does not have an IPhysicsInteractable component!");
+            else Debug.LogWarning("GameObject " + _editorConnectedInteractable + " attached to " + this.gameObject + " does not have an IPhysicsInteractable component!");
         }
 
         private void OnTriggerEnter2D(Collider2D collision)

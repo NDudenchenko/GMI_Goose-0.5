@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+
 
 #if UNITY_EDITOR
 using Physics2D = Nomnom.RaycastVisualization.VisualPhysics2D;
@@ -19,16 +21,21 @@ namespace AG3958
         private Rigidbody2D _rb;
         private Collider2D _coll;
         private LayerMask _envLayerMask;
+        private Vector2 _edgeOffset;
         private Vector2 _leftEdge;
         private Vector2 _rightEdge;
         private SpriteRenderer _playerSprite;
         private PlayerCore _playerCore;
+        private Transform _transform;
 
         // Script-local state identifiers and helpers
         private bool _applyMoveRight = false;
         private bool _applyMoveLeft = false;
         private bool _jumpBuffer = false;
         private bool _fireBuffer = false;
+        private bool _meleeBuffer = false;
+        private bool _chargeActive = false;
+        private bool _chargeReady = false;
         private bool _isGrounded;
         private float _jumpCooldown = 0f;
         private float _groundCheckRayDist;
@@ -48,12 +55,25 @@ namespace AG3958
         public bool BoosterGraceActive { get { return _boosterGraceActive; } }
 
         // Editor parameters
+        [Header("Input")]
+        [SerializeField] private KeyCode _leftKey = KeyCode.A;
+        [SerializeField] private KeyCode _rightKey = KeyCode.D;
+        [SerializeField] private KeyCode _jumpKey = KeyCode.Space;
+        [SerializeField] private KeyCode _fireKey = KeyCode.L;
+        [SerializeField] private KeyCode _meleeKey = KeyCode.K;
         [Header("Basic Movement")]
         [SerializeField] private float _movementSpeed = 3.0f;
         [SerializeField] private float _maximumSpeed = 5.0f;
         [SerializeField] private float _jumpPower = 7.5f;
         [SerializeField] private float _coyoteDuration = 0.5f;
         [SerializeField] private float _wallSlideFriction = 1.0f;
+        [Header("Fire Magic")]
+        [SerializeField] private float _fireCost = 10f;
+        [SerializeField] private float _fireCooldown = 1.5f;
+        [Header("Charge Shot")]
+        [SerializeField] private float _chargeTime = 2.5f;
+        [SerializeField] private float _chargeCost = 2f;
+        [SerializeField] private List<GameObject> _chargePool;
         [Header("Speed Booster")]
         [SerializeField] private float _boosterImpulseSpeed; // movement force change
         [SerializeField] private float _boosterSpeed; // maximum speed change
@@ -74,18 +94,20 @@ namespace AG3958
 
         private void Awake()
         {
+            _transform = transform;
             _playerCore = GetComponent<PlayerCore>();
             _rb = GetComponent<Rigidbody2D>();
             _coll = GetComponent<Collider2D>();
             _envLayerMask = LayerMask.GetMask("Default");
             _groundCheckRayOffset = 0.01f; // making this very slightly positive instead of negative enables wall jumping with no additional code
             _physMatFriction = _rb.sharedMaterial.friction;
-            _leftEdge = new Vector2(transform.position.x - (transform.localScale.x / 2) - _groundCheckRayOffset, transform.position.y);
-            _rightEdge = new Vector2(transform.position.x + (transform.localScale.x / 2) + _groundCheckRayOffset, transform.position.y);
+            _edgeOffset = new Vector2((_transform.localScale.x / 2) + _groundCheckRayOffset, _transform.position.y);
+            _leftEdge = (Vector2)_transform.position - _edgeOffset;
+            _rightEdge = (Vector2)_transform.position + _edgeOffset;
             _playerSprite = GetComponent<SpriteRenderer>();
             _playerColor = _playerSprite.color;
             _resetCoyoteDuration = _coyoteDuration;
-            _groundCheckRayDist = (transform.localScale.y / 2) + 0.05f;
+            _groundCheckRayDist = (_transform.localScale.y / 2) + 0.05f;
             _horizontalForce = new Vector2(_movementSpeed, 0);
             _baseJumpForce = new Vector2(0, _jumpPower);
             _jumpForce = _baseJumpForce;
@@ -98,11 +120,25 @@ namespace AG3958
         private void Update()
         {
             _jumpCooldown += Time.deltaTime;
-            if (Input.GetKey(KeyCode.A)) { _applyMoveLeft = true; }
+            if (Input.GetKey(_leftKey)) { _applyMoveLeft = true; }
             else _applyMoveLeft = false;
-            if (Input.GetKey(KeyCode.D) ) { _applyMoveRight = true; }
+            if (Input.GetKey(_rightKey) ) { _applyMoveRight = true; }
             else _applyMoveRight = false;
-            if (Input.GetKeyDown(KeyCode.Space) && _isGrounded) { _jumpBuffer = true; }
+            if (Input.GetKeyDown(_jumpKey) && _isGrounded) { _jumpBuffer = true; }
+            if (Input.GetKeyDown(_meleeKey)) { _meleeBuffer = true; }
+            if (Input.GetKey(_fireKey))
+            {
+                if (_playerCore.HasCharge)
+                {
+                    _chargeActive = true;
+                }
+                else _fireBuffer = true;
+            }
+            else
+            {
+                _chargeActive = false;
+                _fireBuffer = false;
+            }
 
             if (_playerCore.HasSpeedBooster)
             {
@@ -145,9 +181,8 @@ namespace AG3958
                 _jumpBuffer = false;
             }
 
-            _leftEdge = new Vector2(transform.position.x - (transform.localScale.x / 2) - _groundCheckRayOffset, transform.position.y);
-            _rightEdge = new Vector2(transform.position.x + (transform.localScale.x / 2) + _groundCheckRayOffset, transform.position.y);
-            _groundCheckRayDist = (transform.localScale.y / 2) + 0.05f;
+            _leftEdge = (Vector2)_transform.position - _edgeOffset;
+            _rightEdge = (Vector2)_transform.position + _edgeOffset;
 
             if (_jumpCooldown > 0.25f && (Physics2D.Raycast(_leftEdge, Vector2.down, _groundCheckRayDist, _envLayerMask)
                 | Physics2D.Raycast(_rightEdge, Vector2.down, _groundCheckRayDist, _envLayerMask)))
@@ -161,7 +196,7 @@ namespace AG3958
                 //_coll.enabled = true;
                 _coyoteDuration = _resetCoyoteDuration;
             }
-            else if (_isGrounded) StartCoroutine(CoyoteTime());
+            else if (_isGrounded && !_coyoteActive) StartCoroutine(CoyoteTime());
         }
 
         private void ActivateBooster()
@@ -181,6 +216,12 @@ namespace AG3958
             _horizontalForce = new Vector2(_movementSpeed, 0.0f);
         }
 
+        public void UpdateOffsets()
+        {
+            _edgeOffset = new Vector2((_transform.localScale.x / 2) + _groundCheckRayOffset, _transform.position.y);
+            _groundCheckRayDist = (_transform.localScale.y / 2) + 0.05f;
+        }
+
         /// <summary>
         /// Coroutine that implements coyote time, wall jumping and wall sliding on Fixed Update cycle.
         /// </summary>
@@ -193,34 +234,40 @@ namespace AG3958
                 if (Physics2D.Raycast(_leftEdge, Vector2.left, _groundCheckRayOffset * 20, _envLayerMask))
                 {
                     _jumpForce = _wallJumpForceRight;
-                    if (_applyMoveLeft && _rb.sharedMaterial.friction != _wallSlideFriction)
+                    if (_playerCore.HasWallHang)
                     {
-                        _rb.sharedMaterial.friction = _wallSlideFriction;
-                        _coll.enabled = false;
-                        _coll.enabled = true;
-                    }
-                    else if (!_applyMoveLeft)
-                    {
-                        _rb.sharedMaterial.friction = _physMatFriction;
-                        _coll.enabled = false;
-                        _coll.enabled = true;
+                        if (_applyMoveLeft && _rb.sharedMaterial.friction != _wallSlideFriction)
+                        {
+                            _rb.sharedMaterial.friction = _wallSlideFriction;
+                            _coll.enabled = false;
+                            _coll.enabled = true;
+                        }
+                        else if (!_applyMoveLeft)
+                        {
+                            _rb.sharedMaterial.friction = _physMatFriction;
+                            _coll.enabled = false;
+                            _coll.enabled = true;
+                        } 
                     }
                     coyoteTimeLeft += Time.fixedDeltaTime;
                 }
                 else if (Physics2D.Raycast(_rightEdge, Vector2.right, _groundCheckRayOffset * 20, _envLayerMask))
                 {
                     _jumpForce = _wallJumpForceLeft;
-                    if (_applyMoveRight && _rb.sharedMaterial.friction != _wallSlideFriction)
+                    if (_playerCore.HasWallHang)
                     {
-                        _rb.sharedMaterial.friction = _wallSlideFriction;
-                        _coll.enabled = false;
-                        _coll.enabled = true;
-                    }
-                    else if (!_applyMoveRight)
-                    {
-                        _rb.sharedMaterial.friction = _physMatFriction;
-                        _coll.enabled = false;
-                        _coll.enabled = true;
+                        if (_applyMoveRight && _rb.sharedMaterial.friction != _wallSlideFriction)
+                        {
+                            _rb.sharedMaterial.friction = _wallSlideFriction;
+                            _coll.enabled = false;
+                            _coll.enabled = true;
+                        }
+                        else if (!_applyMoveRight)
+                        {
+                            _rb.sharedMaterial.friction = _physMatFriction;
+                            _coll.enabled = false;
+                            _coll.enabled = true;
+                        } 
                     }
                     coyoteTimeLeft += Time.fixedDeltaTime;
                 }

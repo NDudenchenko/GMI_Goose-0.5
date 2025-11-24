@@ -8,6 +8,7 @@ namespace AG3958
     {
         [SerializeField] private PhysicsButton _btn;
         [SerializeField] private Transform _target;
+        private Transform _transform;
         [SerializeField] private float _moveSpeed = 1f;
         private float _moveStep;
         private bool _moving = false;
@@ -15,7 +16,8 @@ namespace AG3958
 
         private void Awake()
         {
-            _originalPosition = transform.position;
+            _transform = transform;
+            _originalPosition = _transform.position;
         }
 
         private void Update()
@@ -23,9 +25,9 @@ namespace AG3958
             if (_moving)
             {
                 _moveStep = _moveSpeed * Time.deltaTime;
-                if (Vector2.Distance (transform.position, _target.position) > 0.001f)
+                if (Vector2.Distance (_transform.position, _target.position) > 0.001f)
                 {
-                    transform.position = Vector2.MoveTowards(transform.position, _target.position, _moveStep);
+                    _transform.position = Vector2.MoveTowards(_transform.position, _target.position, _moveStep);
                 }
                 else
                 {
@@ -38,7 +40,7 @@ namespace AG3958
 
         public void Interact()
         {
-            _originalPosition = transform.position;
+            _originalPosition = _transform.position;
             _moving = true;
         }
     } 
