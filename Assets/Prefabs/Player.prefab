@@ -212,6 +212,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _leftKey: 97
   _rightKey: 100
+  _upKey: 119
+  _downKey: 115
   _jumpKey: 32
   _fireKey: 108
   _meleeKey: 107
@@ -220,15 +222,25 @@ MonoBehaviour:
   _jumpPower: 8
   _coyoteDuration: 0.2
   _wallSlideFriction: 2
+  _meleeProjectilePrefab: {fileID: 0}
+  _meleeCooldown: 0.5
+  _fireProjectilePrefab: {fileID: 0}
   _fireCost: 10
   _fireCooldown: 1.5
+  _chargeProjectilePrefab: {fileID: 0}
   _chargeTime: 2.5
   _chargeCost: 2
-  _chargePool: []
   _boosterImpulseSpeed: 60
   _boosterSpeed: 20
   _boosterActivationTime: 3
   _boosterGraceTime: 0.25
+  _boosterActiveColor: {r: 0, g: 0.47320843, b: 1, a: 1}
+  _eruptionAdjustSpeed: 1
+  _eruptionImpulseSpeed: 20
+  _eruptionChargeTime: 3
+  _eruptionGraceTime: 0.25
+  _eruptionActiveColor: {r: 1, g: 0.28231797, b: 0, a: 1}
+  _eruptionImpactShake: 0
 --- !u!114 &5431916843098289517
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -246,9 +258,9 @@ MonoBehaviour:
   _points: 0
   _hasWeapon: 0
   _hasMagic: 0
-  _hasWallHang: 0
+  _hasWallHang: 1
   _hasCharge: 0
-  _hasVolcanicEruption: 0
+  _hasVolcanicEruption: 1
   _hasSpeedBooster: 0
   _initialCheckpoint: {fileID: 0}
   _previousCheckpoint: {fileID: 0}
@@ -437,9 +449,9 @@ MonoBehaviour:
   m_AssetsPPU: 24
   m_RefResolutionX: 640
   m_RefResolutionY: 360
-  m_CropFrame: 0
-  m_GridSnapping: 0
-  m_FilterMode: 0
+  m_CropFrame: 4
+  m_GridSnapping: 2
+  m_FilterMode: 1
   m_UpscaleRT: 0
   m_PixelSnapping: 0
   m_CropFrameX: 0

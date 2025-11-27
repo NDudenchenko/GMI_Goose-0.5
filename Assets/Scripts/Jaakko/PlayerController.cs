@@ -1,7 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
-
 
 #if UNITY_EDITOR
 using Physics2D = Nomnom.RaycastVisualization.VisualPhysics2D;
@@ -12,7 +10,7 @@ using Physics2D = UnityEngine.Physics2D;
 namespace AG3958
 {
     /// <summary>
-    /// Basic control and movement script for a 2D player entity. Attached object must have a 2D Rigidbody.
+    /// Player control and movement script.
     /// </summary>
     [RequireComponent (typeof(Rigidbody2D), typeof(Collider2D), typeof(PlayerCore))]
     public class PlayerController : MonoBehaviour
@@ -27,6 +25,7 @@ namespace AG3958
         private SpriteRenderer _playerSprite;
         private PlayerCore _playerCore;
         private Transform _transform;
+        private Camera _mainCamera;
 
         // Script-local state identifiers and helpers
         private bool _applyMoveRight = false;
@@ -45,6 +44,9 @@ namespace AG3958
         private bool _coyoteActive = false;
         private bool _boosterActive = false;
         private bool _boosterGraceActive = false;
+        private bool _eruptionActive = false;
+        private bool _eruptionReady = false;
+        private bool _eruptionGraceActive = false;
 
         // Properties for animation state script
         public bool ApplyMoveRight { get { return _applyMoveRight; } }
@@ -53,11 +55,17 @@ namespace AG3958
         public bool CoyoteActive { get { return _coyoteActive; } }
         public bool BoosterActive { get { return _boosterActive; } }
         public bool BoosterGraceActive { get { return _boosterGraceActive; } }
+        public bool EruptionActive { get { return _eruptionActive; } }
+        public bool EruptionReady {  get { return _eruptionReady; } }
+        public bool EruptionGraceActive { get { return _eruptionGraceActive; } }
+
 
         // Editor parameters
         [Header("Input")]
         [SerializeField] private KeyCode _leftKey = KeyCode.A;
         [SerializeField] private KeyCode _rightKey = KeyCode.D;
+        [SerializeField] private KeyCode _upKey = KeyCode.W;
+        [SerializeField] private KeyCode _downKey = KeyCode.S;
         [SerializeField] private KeyCode _jumpKey = KeyCode.Space;
         [SerializeField] private KeyCode _fireKey = KeyCode.L;
         [SerializeField] private KeyCode _meleeKey = KeyCode.K;
@@ -67,18 +75,34 @@ namespace AG3958
         [SerializeField] private float _jumpPower = 7.5f;
         [SerializeField] private float _coyoteDuration = 0.5f;
         [SerializeField] private float _wallSlideFriction = 1.0f;
+        [Header("Melee Attack")]
+        [SerializeField] private GameObject _meleeProjectilePrefab;
+        [SerializeField] private float _meleeCooldown = 0.5f;
         [Header("Fire Magic")]
+        [SerializeField] private GameObject _fireProjectilePrefab;
         [SerializeField] private float _fireCost = 10f;
-        [SerializeField] private float _fireCooldown = 1.5f;
+        [SerializeField] private float _fireCooldown = 1.0f;
         [Header("Charge Shot")]
+        [SerializeField] private GameObject _chargeProjectilePrefab;
         [SerializeField] private float _chargeTime = 2.5f;
-        [SerializeField] private float _chargeCost = 2f;
-        [SerializeField] private List<GameObject> _chargePool;
-        [Header("Speed Booster")]
-        [SerializeField] private float _boosterImpulseSpeed; // movement force change
-        [SerializeField] private float _boosterSpeed; // maximum speed change
+        [SerializeField] private float _chargeCost = 20f;
+        [Header("Volcanic Surge")]
+        [Tooltip("Movement speed with Volcanic Surge active")]
+        [SerializeField] private float _boosterImpulseSpeed;
+        [Tooltip("Maximum speed with Volcanic Surge active")]
+        [SerializeField] private float _boosterSpeed;
         [SerializeField] private float _boosterActivationTime;
         [SerializeField] private float _boosterGraceTime;
+        [SerializeField] private Color _boosterActiveColor;
+        [Header("Volcanic Eruption")]
+        [Tooltip("Horizontal movement force while Volcanic Eruption is active")]
+        [SerializeField] private float _eruptionAdjustSpeed = 1.0f;
+        [Tooltip("Impulse force")]
+        [SerializeField] private float _eruptionImpulseSpeed;
+        [SerializeField] private float _eruptionChargeTime;
+        [SerializeField] private float _eruptionGraceTime;
+        [SerializeField] private Color _eruptionActiveColor;
+        [SerializeField] private float _eruptionImpactShake;
 
         // Editor param-derived variables
         private Vector2 _horizontalForce;
@@ -88,9 +112,12 @@ namespace AG3958
         private Vector2 _wallJumpForceLeft;
         private float _resetCoyoteDuration;
         private float _originalMoveSpeed;
-        private float _originalMaxSpeed; // store value of normal maximum speed in awake
+        private float _originalMaxSpeed; // store values of normal move/maximum speed in awake
         private float _boosterTimer = 0.0f;
         private float _boosterGrace = 0.0f;
+        private float _eruptionChargeTimer = 0.0f;
+        private float _eruptionGrace = 0.0f;
+        private Vector2 _eruptionImpulseForce;
 
         private void Awake()
         {
@@ -98,6 +125,7 @@ namespace AG3958
             _playerCore = GetComponent<PlayerCore>();
             _rb = GetComponent<Rigidbody2D>();
             _coll = GetComponent<Collider2D>();
+            _mainCamera = GetComponent<Camera>();
             _envLayerMask = LayerMask.GetMask("Default");
             _groundCheckRayOffset = 0.01f; // making this very slightly positive instead of negative enables wall jumping with no additional code
             _physMatFriction = _rb.sharedMaterial.friction;
@@ -113,6 +141,7 @@ namespace AG3958
             _jumpForce = _baseJumpForce;
             _wallJumpForceRight = new Vector2(_jumpPower * 0.75f, _jumpPower);
             _wallJumpForceLeft = new Vector2(-_jumpPower * 0.75f, _jumpPower);
+            _eruptionImpulseForce = new Vector2(0.0f, _eruptionImpulseSpeed);
             _originalMoveSpeed = _movementSpeed;
             _originalMaxSpeed = _maximumSpeed;
         }
@@ -125,8 +154,8 @@ namespace AG3958
             if (Input.GetKey(_rightKey) ) { _applyMoveRight = true; }
             else _applyMoveRight = false;
             if (Input.GetKeyDown(_jumpKey) && _isGrounded) { _jumpBuffer = true; }
-            if (Input.GetKeyDown(_meleeKey)) { _meleeBuffer = true; }
-            if (Input.GetKey(_fireKey))
+            if (Input.GetKeyDown(_meleeKey) && _playerCore.HasWeapon) { _meleeBuffer = true; }
+            if (Input.GetKey(_fireKey) && _playerCore.HasMagic)
             {
                 if (_playerCore.HasCharge)
                 {
@@ -142,12 +171,12 @@ namespace AG3958
 
             if (_playerCore.HasSpeedBooster)
             {
-                if ((_rb.linearVelocityX >= _maximumSpeed * 0.9f && _isGrounded) || (_rb.linearVelocityX <= _maximumSpeed * -0.9f && _isGrounded))
+                if ((_isGrounded && _rb.linearVelocityX >= _maximumSpeed * 0.9f) || (_isGrounded && _rb.linearVelocityX <= _maximumSpeed * -0.9f))
                 {
                     _boosterTimer += Time.deltaTime;
                 }
                 else { _boosterTimer = 0.0f; }
-                if (_boosterTimer >= _boosterActivationTime && !_boosterActive)
+                if (!_boosterActive && _boosterTimer >= _boosterActivationTime)
                 {
                     ActivateBooster();
                 }
@@ -166,6 +195,37 @@ namespace AG3958
                     _boosterGrace = 0.0f;
                 }
             }
+
+            if (_playerCore.HasVolcanicEruption)
+            {
+                if (!_eruptionReady && !_eruptionGraceActive && Input.GetKey(_downKey) && _rb.linearVelocity.magnitude < 0.1f)
+                {
+                    if (_eruptionChargeTimer < _eruptionChargeTime)
+                    {
+                        _eruptionChargeTimer += Time.deltaTime;
+                    }
+                    else
+                    {
+                        _eruptionReady = true;
+                        _playerSprite.color = _eruptionActiveColor;
+                    }
+                }
+                else { _eruptionChargeTimer = 0.0f; }
+                if (_eruptionReady && _rb.linearVelocity.magnitude > 0.1f)
+                { 
+                    _eruptionReady = false;
+                    _playerSprite.color = _playerColor;
+                }
+                if (_eruptionReady && Input.GetKeyDown(_jumpKey)) { ActivateEruption(); }
+                if (_eruptionActive && _rb.linearVelocityY < 0.1f) { DeactivateEruption(); }
+                if (_eruptionGraceActive) _eruptionGrace += Time.deltaTime;
+                if (_eruptionGrace >= _eruptionGraceTime)
+                {
+                    _eruptionGraceActive = false;
+                    _rb.gravityScale = 1.0f;
+                    _eruptionGrace = 0.0f;
+                } 
+            }
         }
 
         private void FixedUpdate()
@@ -175,9 +235,13 @@ namespace AG3958
             if (_jumpBuffer)
             {
                 _rb.AddForce(_jumpForce, ForceMode2D.Impulse);
+                if (_eruptionReady)
+                { 
+                    _eruptionReady = false;
+                    _eruptionActive = true;
+                }
                 _coyoteDuration = 0;
                 _jumpCooldown = 0.0f;
-                _rb.gravityScale = 1.0f;
                 _jumpBuffer = false;
             }
 
@@ -205,7 +269,7 @@ namespace AG3958
             _maximumSpeed = _boosterSpeed;
             _horizontalForce = new Vector2(_movementSpeed, 0.0f);
             _boosterActive = true;
-            _playerSprite.color = Color.cyan;
+            _playerSprite.color = _boosterActiveColor;
         }
 
         private void DeactivateBooster()
@@ -214,6 +278,23 @@ namespace AG3958
             _movementSpeed = _originalMoveSpeed;
             _maximumSpeed = _originalMaxSpeed;
             _horizontalForce = new Vector2(_movementSpeed, 0.0f);
+        }
+
+        private void ActivateEruption()
+        {
+            _jumpForce = _eruptionImpulseForce;
+            _movementSpeed = _eruptionAdjustSpeed;
+            _maximumSpeed = _eruptionAdjustSpeed;
+            _rb.gravityScale = 0.0f;
+        }
+
+        private void DeactivateEruption()
+        {
+            _eruptionActive = false;
+            _playerSprite.color = _playerColor;
+            _movementSpeed = _originalMoveSpeed;
+            _maximumSpeed = _originalMaxSpeed;
+            _eruptionGraceActive = true;
         }
 
         public void UpdateOffsets()
@@ -274,7 +355,7 @@ namespace AG3958
                 else
                 {
                     _jumpForce = _baseJumpForce;
-                    _rb.gravityScale = 1.0f;
+                    // _rb.gravityScale = 1.0f;
                     _rb.sharedMaterial.friction = _physMatFriction;
                     _coll.enabled = false;
                     _coll.enabled = true;

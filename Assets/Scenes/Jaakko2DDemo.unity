@@ -75881,18 +75881,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1519559747993775820, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
-      propertyPath: m_CropFrame
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 1519559747993775820, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
-      propertyPath: m_FilterMode
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1519559747993775820, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
-      propertyPath: m_GridSnapping
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 1618266937033569648, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
       propertyPath: m_LocalPosition.x
       value: -12
@@ -75936,10 +75924,6 @@ PrefabInstance:
     - target: {fileID: 2186000261291522036, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
       propertyPath: m_Name
       value: Player
-      objectReference: {fileID: 0}
-    - target: {fileID: 5431916843098289517, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
-      propertyPath: _hasWallHang
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5431916843098289517, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
       propertyPath: _initialCheckpoint
