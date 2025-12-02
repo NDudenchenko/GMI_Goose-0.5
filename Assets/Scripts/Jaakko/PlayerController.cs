@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections;
+using System.Net;
+
 
 #if UNITY_EDITOR
 using Physics2D = Nomnom.RaycastVisualization.VisualPhysics2D;
@@ -25,7 +27,6 @@ namespace AG3958
         private SpriteRenderer _playerSprite;
         private PlayerCore _playerCore;
         private Transform _transform;
-        private Camera _mainCamera;
 
         // Script-local state identifiers
         private bool _applyMoveRight = false;
@@ -103,7 +104,6 @@ namespace AG3958
         [SerializeField] private float _eruptionChargeTime;
         [SerializeField] private float _eruptionGraceTime;
         [SerializeField] private Color _eruptionActiveColor;
-        [SerializeField] private float _eruptionImpactShake;
 
         // Editor param-derived variables and timers
         private Vector2 _horizontalForce;
@@ -134,9 +134,8 @@ namespace AG3958
             _playerCore = GetComponent<PlayerCore>();
             _rb = GetComponent<Rigidbody2D>();
             _coll = GetComponent<Collider2D>();
-            _mainCamera = GetComponent<Camera>();
             _envLayerMask = LayerMask.GetMask("Default");
-            _groundCheckRayOffset = 0.01f; // making this very slightly positive instead of negative enables wall jumping with no additional code
+            _groundCheckRayOffset = 0.0125f; // making this very slightly positive instead of negative enables wall jumping with no additional code
             _physMatFriction = _rb.sharedMaterial.friction;
             _edgeOffset = new Vector2((_transform.localScale.x / 2) + _groundCheckRayOffset, _transform.position.y);
             _leftEdge = (Vector2)_transform.position - _edgeOffset;
@@ -161,10 +160,11 @@ namespace AG3958
             _meleeCooldownTimer += Time.deltaTime;
             _fireCooldownTimer += Time.deltaTime;
             if (Input.GetKey(_leftKey)) { _applyMoveLeft = true; }
-            else _applyMoveLeft = false;
-            if (Input.GetKey(_rightKey) ) { _applyMoveRight = true; }
-            else _applyMoveRight = false;
+            else { _applyMoveLeft = false; }
+            if (Input.GetKey(_rightKey)) { _applyMoveRight = true; }
+            else { _applyMoveRight = false; }
             if (Input.GetKey(_downKey) && !_isCrouched) { _isCrouched = true; }
+            else {  _isCrouched = false; }
             if (Input.GetKeyDown(_jumpKey) && _isGrounded) { _jumpBuffer = true; }
             if (Input.GetKeyDown(_meleeKey) && _playerCore.HasWeapon) { _meleeBuffer = true; }
             if (Input.GetKeyUp(_fireKey))
@@ -257,6 +257,24 @@ namespace AG3958
 
         private void FixedUpdate()
         {
+            _leftEdge = (Vector2)_transform.position - _edgeOffset;
+            _rightEdge = (Vector2)_transform.position + _edgeOffset;
+
+            if (_jumpCooldownTimer > _resetCoyoteDuration && (Physics2D.Raycast(_leftEdge, Vector2.down, _groundCheckRayDist, _envLayerMask)
+                | Physics2D.Raycast(_rightEdge, Vector2.down, _groundCheckRayDist, _envLayerMask)))
+            {
+                if (_eruptionReady || _eruptionActive) _jumpForce = _eruptionImpulseForce;
+                else _jumpForce = _baseJumpForce;
+                _isGrounded = true;
+                //_rb.sharedMaterial.friction = _physMatFriction;
+                //_coll.enabled = false;
+                //_coll.enabled = true;
+                _coyoteDuration = _resetCoyoteDuration;
+            }
+            else if (_isGrounded && !_coyoteActive) StartCoroutine(CoyoteTime());
+            else if (_coyoteActive) _isGrounded = true;
+            else _isGrounded = false;
+
             if (_applyMoveLeft && _rb.linearVelocityX >= _maximumSpeed * -1) { _rb.AddForce(-_horizontalForce, ForceMode2D.Force); }
             if (_applyMoveRight && _rb.linearVelocityX <= _maximumSpeed) { _rb.AddForce(_horizontalForce, ForceMode2D.Force); }
             if (_jumpBuffer)
@@ -267,27 +285,13 @@ namespace AG3958
                     _eruptionReady = false;
                     _eruptionActive = true;
                 }
+                StopCoroutine(CoyoteTime());
+                _coyoteActive = false;
+                _isGrounded = false;
                 _coyoteDuration = 0;
                 _jumpCooldownTimer = 0.0f;
                 _jumpBuffer = false;
             }
-
-            _leftEdge = (Vector2)_transform.position - _edgeOffset;
-            _rightEdge = (Vector2)_transform.position + _edgeOffset;
-
-            if (_jumpCooldownTimer > _jumpCooldown && (Physics2D.Raycast(_leftEdge, Vector2.down, _groundCheckRayDist, _envLayerMask)
-                | Physics2D.Raycast(_rightEdge, Vector2.down, _groundCheckRayDist, _envLayerMask)))
-            {
-                StopCoroutine(CoyoteTime());
-                _jumpForce = _baseJumpForce;
-                _coyoteActive = false;
-                _isGrounded = true;
-                //_rb.sharedMaterial.friction = _physMatFriction;
-                //_coll.enabled = false;
-                //_coll.enabled = true;
-                _coyoteDuration = _resetCoyoteDuration;
-            }
-            else if (_isGrounded && !_coyoteActive) StartCoroutine(CoyoteTime());
         }
 
         private void ActivateBooster()

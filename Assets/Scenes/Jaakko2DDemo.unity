@@ -129,7 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 134925464}
   - component: {fileID: 134925463}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Checkpoint System
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -256,7 +256,7 @@ GameObject:
   - component: {fileID: 531693631}
   - component: {fileID: 531693633}
   - component: {fileID: 531693632}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Main Room SE
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -348,7 +348,7 @@ GameObject:
   - component: {fileID: 599777814}
   - component: {fileID: 599777816}
   - component: {fileID: 599777815}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Main Room NE
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -75839,7 +75839,7 @@ GameObject:
   m_Component:
   - component: {fileID: 828720638}
   - component: {fileID: 828720639}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: World Origin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -75885,7 +75885,7 @@ GameObject:
   - component: {fileID: 1066819535}
   - component: {fileID: 1066819537}
   - component: {fileID: 1066819536}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Main Room SW
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -75974,6 +75974,66 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 127862041136390524, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: _jumpCooldown
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 127862041136390524, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: _eruptionChargeTime
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 127862041136390524, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: _eruptionImpulseSpeed
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 127862041136390524, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: _boosterActivationTime
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 784582341538922920, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: orthographic size
+      value: 7.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 784582341538922920, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_BackGroundColor.b
+      value: 0.12588999
+      objectReference: {fileID: 0}
+    - target: {fileID: 784582341538922920, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_BackGroundColor.g
+      value: 0.15009806
+      objectReference: {fileID: 0}
+    - target: {fileID: 784582341538922920, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_BackGroundColor.r
+      value: 0.21698111
+      objectReference: {fileID: 0}
+    - target: {fileID: 784582341538922920, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_NormalizedViewPortRect.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 784582341538922920, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_NormalizedViewPortRect.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 784582341538922920, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_NormalizedViewPortRect.width
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 784582341538922920, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_NormalizedViewPortRect.height
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1519559747993775820, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_CropFrame
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1519559747993775820, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_FilterMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1519559747993775820, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
+      propertyPath: m_GridSnapping
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1618266937033569648, guid: 9062d3f1e55dc21489d741f27cd94ef4, type: 3}
       propertyPath: m_LocalPosition.x
       value: -12
