@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections;
 using System.Net;
+using UnityEngine.InputSystem.LowLevel;
+
 
 
 #if UNITY_EDITOR
@@ -32,6 +34,9 @@ namespace AG3958
         private bool _applyMoveRight = false;
         private bool _applyMoveLeft = false;
         private bool _isCrouched = false;
+        private bool _facingRight = true;
+        private bool _aimingUp = false;
+        private bool _aimingDown = false;
         private bool _jumpBuffer = false;
         private bool _fireBuffer = false;
         private bool _chargeBuffer = false;
@@ -46,10 +51,15 @@ namespace AG3958
         private bool _eruptionReady = false;
         private bool _eruptionGraceActive = false;
 
+        private WaitForFixedUpdate _waitForFixedUpdate = new WaitForFixedUpdate();
+
         // Properties for animation state script
         public bool ApplyMoveRight { get { return _applyMoveRight; } }
         public bool ApplyMoveLeft {  get { return _applyMoveLeft; } }
         public bool IsCrouched { get { return _isCrouched; } }
+        public bool FacingRight {  get { return _facingRight; } }
+        public bool AimingUp {  get { return _aimingUp; } }
+        public bool AimingDown {  get { return _aimingDown; } }
         public bool IsGrounded { get { return _isGrounded; } }
         public bool CoyoteActive { get { return _coyoteActive; } }
         public bool ChargeActive { get { return _chargeActive; } }
@@ -137,13 +147,12 @@ namespace AG3958
             _envLayerMask = LayerMask.GetMask("Default");
             _groundCheckRayOffset = 0.0125f; // making this very slightly positive instead of negative enables wall jumping with no additional code
             _physMatFriction = _rb.sharedMaterial.friction;
-            _edgeOffset = new Vector2((_transform.localScale.x / 2) + _groundCheckRayOffset, _transform.position.y);
+            UpdateOffsets();
             _leftEdge = (Vector2)_transform.position - _edgeOffset;
             _rightEdge = (Vector2)_transform.position + _edgeOffset;
             _playerSprite = GetComponent<SpriteRenderer>();
             _playerColor = _playerSprite.color;
             _resetCoyoteDuration = _coyoteDuration;
-            _groundCheckRayDist = (_transform.localScale.y / 2) + 0.05f;
             _horizontalForce = new Vector2(_movementSpeed, 0);
             _baseJumpForce = new Vector2(0, _jumpPower);
             _jumpForce = _baseJumpForce;
@@ -163,10 +172,16 @@ namespace AG3958
             else { _applyMoveLeft = false; }
             if (Input.GetKey(_rightKey)) { _applyMoveRight = true; }
             else { _applyMoveRight = false; }
-            if (Input.GetKey(_downKey) && !_isCrouched) { _isCrouched = true; }
-            else {  _isCrouched = false; }
+            if (_applyMoveLeft && !_applyMoveRight) { _facingRight = false; }
+            else if (_applyMoveRight && !_applyMoveLeft) { _facingRight = true; }
+            if (Input.GetKey(_downKey) && _isGrounded && !_isCrouched) { _isCrouched = true; }
+            else { _isCrouched = false; }
+            if (Input.GetKey(_downKey) && !_isCrouched) { _aimingDown = true; }
+            else { _aimingDown = false; }
+            if (Input.GetKey(_upKey) && !_aimingUp) { _aimingUp = true; }
+            else { _aimingUp = false; }
             if (Input.GetKeyDown(_jumpKey) && _isGrounded) { _jumpBuffer = true; }
-            if (Input.GetKeyDown(_meleeKey) && _playerCore.HasWeapon) { _meleeBuffer = true; }
+            if (Input.GetKeyDown(_meleeKey) && _playerCore.HasWeapon && _meleeCooldownTimer >= _meleeCooldown) { _meleeBuffer = true; }
             if (Input.GetKeyUp(_fireKey))
             {
                 if (_chargeReady) { _chargeBuffer = true; }
@@ -189,7 +204,6 @@ namespace AG3958
             else
             {
                 _chargeActive = false;
-                _fireBuffer = false;
             }
 
             if (_playerCore.HasSpeedBooster)
@@ -228,7 +242,7 @@ namespace AG3958
 
             if (_playerCore.HasVolcanicEruption)
             {
-                if (!_eruptionReady && !_eruptionGraceActive && Input.GetKey(_downKey) && _rb.linearVelocity.magnitude < 1.0f)
+                if (!_eruptionReady && !_eruptionGraceActive && _isCrouched && _rb.linearVelocity.magnitude < 1.0f)
                 {
                     if (_eruptionChargeTimer < _eruptionChargeTime) { _eruptionChargeTimer += Time.deltaTime; }
                     else
@@ -329,10 +343,24 @@ namespace AG3958
             _eruptionGraceActive = true;
         }
 
+        /// <summary>
+        /// Updates the edge and ground ray offsets of the player controller. Call when anything changes the player's localScale.
+        /// </summary>
         public void UpdateOffsets()
         {
             _edgeOffset = new Vector2((_transform.localScale.x / 2) + _groundCheckRayOffset, _transform.position.y);
             _groundCheckRayDist = (_transform.localScale.y / 2) + 0.05f;
+        }
+
+        /// <summary>
+        /// Applies an outside impulse force to the player.
+        /// </summary>
+        /// <param name="launchForce">Force vector to apply</param>
+        /// <param name="resetMomentum">Whether the player's velocity is reset before the impulse is applied</param>
+        public void Launch(Vector2 launchForce, bool resetMomentum)
+        {
+            if (resetMomentum) { _rb.linearVelocity = Vector2.zero; }
+            _rb.AddForce(launchForce, ForceMode2D.Impulse);
         }
 
         /// <summary>
@@ -393,11 +421,10 @@ namespace AG3958
                     _coll.enabled = true;
                 }
                 coyoteTimeLeft -= Time.fixedDeltaTime;
-                yield return new WaitForFixedUpdate();
+                yield return _waitForFixedUpdate;
             }
             _isGrounded = false;
             _coyoteActive = false;
         }
     }
-
 }

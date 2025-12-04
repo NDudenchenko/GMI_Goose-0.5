@@ -1,0 +1,30 @@
+using System;
+using UnityEngine;
+
+namespace AG3958
+{
+    [Serializable, RequireComponent (typeof(Collider2D))]
+    public class HealthCollectable : MonoBehaviour, ICollectable
+    {
+        readonly private ICollectable.CollectableType _cType = ICollectable.CollectableType.Health;
+        public ICollectable.CollectableType CType { get { return _cType; } }
+        [SerializeField] private float _value;
+        public float CValue { get { return _value; } }
+
+        [Tooltip("If this collectible is a hazard, does collecting it invoke player iframes?")]
+        [SerializeField] private bool _invokesIFrames = false;
+
+        public void OnTriggerEnter2D(Collider2D collision)
+        {
+            if (collision.CompareTag("Player")) CollectObject();
+            else return;
+        }
+
+        public void CollectObject()
+        {
+            PlayerCore.HealthChangeEvent?.Invoke(_value, _invokesIFrames);
+            Destroy(this.gameObject);
+        }
+    }
+
+}

@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5427275715554021868}
   - component: {fileID: 4594549869170941754}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -98,7 +98,7 @@ GameObject:
   - component: {fileID: 720858617743629996}
   - component: {fileID: 5250292414842590325}
   - component: {fileID: 6022842022516902920}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Point Collectable
   m_TagString: Untagged
   m_Icon: {fileID: 0}
