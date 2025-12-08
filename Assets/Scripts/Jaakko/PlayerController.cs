@@ -94,6 +94,8 @@ namespace AG3958
         [SerializeField] private GameObject _fireProjectilePrefab;
         [SerializeField] private float _fireCost = 10f;
         [SerializeField] private float _fireCooldown = 1.0f;
+        [Tooltip("Projectile speed as velocity units added on instantiation. This is the same for Charge Shots.")]
+        [SerializeField] private float _projSpeed = 5.0f;
         [Header("Charge Shot")]
         [SerializeField] private GameObject _chargeProjectilePrefab;
         [SerializeField] private float _chargeTime = 2.5f;
@@ -137,6 +139,7 @@ namespace AG3958
         private float _eruptionChargeTimer = 0.0f;
         private float _eruptionGrace = 0.0f;
         private Vector2 _eruptionImpulseForce;
+        private Vector2 _meleeOffset;
 
         private void Awake()
         {
@@ -208,7 +211,8 @@ namespace AG3958
 
             if (_playerCore.HasSpeedBooster)
             {
-                if ((_isGrounded && _rb.linearVelocityX >= _maximumSpeed * 0.9f) || (_isGrounded && _rb.linearVelocityX <= _maximumSpeed * -0.9f))
+                if ((_isGrounded && _rb.linearVelocityX >= _maximumSpeed * 0.9f) || (_isGrounded && _rb.linearVelocityX <= _maximumSpeed * -0.9f)
+                    && !_isCrouched)
                 {
                     _boosterTimer += Time.deltaTime;
                 }
@@ -305,6 +309,27 @@ namespace AG3958
                 _coyoteDuration = 0;
                 _jumpCooldownTimer = 0.0f;
                 _jumpBuffer = false;
+            }
+
+            if (_meleeBuffer)
+            {
+                if (_facingRight) Instantiate(_meleeProjectilePrefab, (Vector2)_transform.position + _meleeOffset, Quaternion.identity);
+                else Instantiate(_meleeProjectilePrefab, (Vector2)_transform.position - _meleeOffset, Quaternion.identity);
+            }
+            if (_fireBuffer) { FireProjectile(_fireProjectilePrefab); }
+            if (_chargeBuffer) { FireProjectile(_chargeProjectilePrefab); }
+        }
+
+        private void FireProjectile(GameObject projectile)
+        {
+            Rigidbody2D pRB = Instantiate(projectile, _transform.position, _transform.rotation).GetComponent<Rigidbody2D>();
+            if (_facingRight)
+            { 
+                pRB.linearVelocity = Vector2.right * _projSpeed;
+            }
+            else
+            { 
+                pRB.linearVelocity = Vector2.left * -_projSpeed;
             }
         }
 

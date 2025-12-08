@@ -2,12 +2,13 @@ using UnityEngine;
 
 namespace AG3958
 {
+    public enum DamageType { Melee, Ranged, Charge, Enemy }
+
     public class Projectile : MonoBehaviour
     {
         // class is agnostic to projectile source, determined by prefab tag
-        public enum DamageType { Melee, Ranged, Charge, Enemy }
 
-        [SerializeField] private DamageType _damageType;
+        public DamageType ProjectileDamageType;
         [SerializeField] private float _damage;
         [SerializeField] private bool _invokesIFrames;
         [SerializeField] private float _lifetime;
@@ -25,10 +26,10 @@ namespace AG3958
 
         private void OnCollisionEnter2D(Collision2D coll)
         {
-            if (coll.collider.CompareTag("Enemy") && _damageType != DamageType.Enemy)
+            if (coll.collider.CompareTag("Enemy") && ProjectileDamageType != DamageType.Enemy)
             {
                 Enemy e = coll.gameObject.GetComponent<Enemy>();
-                if (e.EffectiveDamageTypes.Contains(_damageType))
+                if (e.EffectiveDamageTypes.Contains(ProjectileDamageType))
                 { 
                     // instantiate vfx/sfx for effective projectile impact
                     e.TakeDamage(_damage);
@@ -38,7 +39,7 @@ namespace AG3958
                     // instantiate vfx/sfx for ineffective projectile impact
                 }
             }
-            if (coll.collider.CompareTag("Player") && _damageType == DamageType.Enemy)
+            if (coll.collider.CompareTag("Player") && ProjectileDamageType == DamageType.Enemy)
             {
                 PlayerController pc = coll.gameObject.GetComponent<PlayerController>();
                 if (_knockbackStrength > 0)

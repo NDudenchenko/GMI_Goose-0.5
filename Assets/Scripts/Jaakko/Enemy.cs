@@ -20,7 +20,7 @@ namespace AG3958
         private Vector2 _knockbackForceMultiplier;
 
         [Tooltip("List of projectile types that can deal damage")]
-        public List<Projectile.DamageType> EffectiveDamageTypes;
+        public List<DamageType> EffectiveDamageTypes;
 
         [Header("On Death")]
         [Tooltip("Base perccentage chance for this enemy to drop health on death")]
@@ -34,6 +34,7 @@ namespace AG3958
         {
             _knockbackForceMultiplier = new Vector2(_knockbackStrength, _knockbackStrength);
             _healthDrop = _healthDropPrefab.GetComponent<HealthCollectable>();
+            _currentHealth = _maxHealth;
         }
 
         private void OnCollisionEnter2D(Collision2D coll)
@@ -62,6 +63,7 @@ namespace AG3958
         {
             _currentHealth -= damage;
             if (_currentHealth < 0) { Kill(false); }
+            else { } // enemy-specific damaged vfx/sfx
         }
 
         private void Kill(bool instant)
