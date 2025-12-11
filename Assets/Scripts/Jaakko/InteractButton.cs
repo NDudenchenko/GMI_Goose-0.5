@@ -20,8 +20,7 @@ namespace AG3958
 
         private void Awake()
         {
-            if (OnButtonInteract == null)
-                OnButtonInteract = new UnityEvent();
+            OnButtonInteract ??= new UnityEvent();
 
             if (_isUsable) _buttonRenderer.sprite = _buttonActiveSprite;
             else _buttonRenderer.sprite = _buttonInactiveSprite;

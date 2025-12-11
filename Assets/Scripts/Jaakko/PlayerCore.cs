@@ -2,6 +2,7 @@ using UnityEngine;
 using EditorAttributes;
 using System;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 namespace AG3958
 {
@@ -11,9 +12,12 @@ namespace AG3958
         public static Action<float, bool> HealthChangeEvent;
         public static Action<float> ManaChangeEvent;
         public static Action<float> PointChangeEvent;
+        public static event Action PlayerDeathEvent;
+        public static event Action PlayerRespawnEvent;
 
         [Header("Basic Stats")]
         [SerializeField, Clamp(1, Single.MaxValue)] private float _maxHealth;
+        public float MaxHealth { get { return _maxHealth; } }
         private float _currentHealth;
         public float PlayerHealth { get { return _currentHealth; } }
 
@@ -21,21 +25,26 @@ namespace AG3958
         [SerializeField] private int _iFrames = 100;
         private bool _invincible = false;
         public bool IsInvincible { get { return _invincible; } }
-        private WaitForFixedUpdate _waitForFixedUpdate;
+        private readonly WaitForFixedUpdate _waitForFixedUpdate;
 
         [SerializeField, Clamp(1, Single.MaxValue)] private float _maxMana;
+        public float MaxMana {  get { return _maxMana; } }
         private float _currentMana;
         public float PlayerMana { get { return _currentMana; } }
 
-        [Tooltip("Mana regenerates 10x this much per second while regen is active")]
+        [Tooltip("Mana regeneration speed while regen is active (per 1/50th of second)")]
         [SerializeField] private float _manaRegenSpeed = 1.0f;
-        private WaitForSeconds _manaRegenWait = new WaitForSeconds(0.1f);
+        private WaitForSeconds _manaRegenWait = new WaitForSeconds(0.02f);
         [SerializeField] private float _manaRegenTime = 3.0f;
         private float _manaRegenTimer = 0.0f;
         private bool _manaRegenActive = false;
+        public bool ManaRegenActive { get { return _manaRegenActive; } }
 
         [SerializeField, Clamp(0, Single.MaxValue)] private float _points = 0f;
         public float PlayerPoints { get { return _points; } }
+
+        [SerializeField] private float _respawnTime = 5f;
+        private float _respawnTimer;
 
         [Header("Progression Checks")]
         [SerializeField] private bool _hasWeapon;
@@ -71,6 +80,8 @@ namespace AG3958
             HealthChangeEvent += OnHealthChanged;
             ManaChangeEvent += OnManaChanged;
             PointChangeEvent += OnPointsChanged;
+            PlayerDeathEvent += Die;
+            PlayerRespawnEvent += Respawn;
         }
 
         private void Update()
@@ -83,7 +94,11 @@ namespace AG3958
         private void OnHealthChanged(float value, bool useIFrames)
         {
             if (_currentHealth + value > _maxHealth) { _currentHealth = _maxHealth; }
-            else if (_currentHealth + value < 0) { _currentHealth = 0; }
+            else if (_currentHealth + value <= 0)
+            { 
+                _currentHealth = 0;
+                PlayerDeathEvent?.Invoke();
+            }
             else { _currentHealth += value; }
             if (useIFrames) StartCoroutine(InvincibilityFrames());
         }
@@ -93,12 +108,11 @@ namespace AG3958
             if (_currentMana + value > _maxMana)
             {
                 _currentMana = _maxMana;
-                StopCoroutine(ManaRecharge());
-                _manaRegenActive = false;
+                StopRecharge();
             }
             else if (_currentMana + value < 0) { _currentMana = 0; }
             else { _currentMana += value; }
-            if (value < 0) { _manaRegenTimer = 0.0f; }
+            if (value < 0) { StopRecharge(); }
         }
 
         private void OnPointsChanged(float value)
@@ -110,11 +124,18 @@ namespace AG3958
         private IEnumerator ManaRecharge()
         {
             _manaRegenActive = true;
-            while (_currentMana < _maxMana)
+            while (_currentMana < _maxMana && _manaRegenActive)
             {
                 ManaChangeEvent?.Invoke(_manaRegenSpeed);
                 yield return _manaRegenWait;
             }
+            _manaRegenActive = false;
+        }
+
+        public void StopRecharge()
+        {
+            _manaRegenTimer = 0.0f;
+            StopCoroutine(ManaRecharge());
             _manaRegenActive = false;
         }
 
@@ -133,6 +154,37 @@ namespace AG3958
         public void SetCheckpoint(Checkpoint point)
         {
             _previousCheckpoint = point;
+        }
+
+        private void Die()
+        {
+            transform.GetChild(0).gameObject.SetActive(false);
+            StartCoroutine(RespawnTimer());
+        }
+
+        private IEnumerator RespawnTimer()
+        {
+            while (_respawnTimer < _respawnTime)
+            {
+                _respawnTimer += Time.fixedDeltaTime;
+                yield return _waitForFixedUpdate;
+            }
+            PlayerRespawnEvent?.Invoke();
+            _respawnTimer = 0.0f;
+        }
+
+        private void Respawn()
+        {
+            SceneLoader.Instance.LoadSceneWithFade(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        private void OnDestroy()
+        {
+            PointChangeEvent = null;
+            HealthChangeEvent = null;
+            ManaChangeEvent = null;
+            PlayerDeathEvent = null;
+            PlayerRespawnEvent = null;
         }
     }
 }

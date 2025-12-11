@@ -12,6 +12,8 @@ namespace AG3958
         [SerializeField] private float _damage;
         [SerializeField] private bool _invokesIFrames;
         [SerializeField] private float _lifetime;
+        [Tooltip("If true, colliding does not destroy the projectile")]
+        [SerializeField] private bool _destroyedByCollision = true;
         [Header("Knockback")]
         [SerializeField] private float _knockbackStrength;
         private Vector2 _knockbackForceMultiplier;
@@ -41,17 +43,26 @@ namespace AG3958
             }
             if (coll.collider.CompareTag("Player") && ProjectileDamageType == DamageType.Enemy)
             {
-                PlayerController pc = coll.gameObject.GetComponent<PlayerController>();
-                if (_knockbackStrength > 0)
+                PlayerController pcon = coll.gameObject.GetComponent<PlayerController>();
+                PlayerCore pcor = coll.gameObject.GetComponentInParent<PlayerCore>();
+                if (!pcor.IsInvincible)
                 {
-                    Vector2 kbVector = (Vector2)coll.transform.position - (Vector2)this.transform.position;
-                    kbVector.Scale(_knockbackForceMultiplier);
-                    pc.Launch(kbVector, _isHeavyKnockback);
+                    if (_knockbackStrength > 0)
+                    {
+                        Vector2 kbVector = (Vector2)coll.transform.position - (Vector2)this.transform.position;
+                        kbVector.Scale(_knockbackForceMultiplier);
+                        pcon.Launch(kbVector, _isHeavyKnockback);
+                    }
+                    PlayerCore.HealthChangeEvent?.Invoke(-_damage, _invokesIFrames);
                 }
-                PlayerCore.HealthChangeEvent?.Invoke(_damage, _invokesIFrames);
             }
-            // instantiate vfx/sfx for generic projectile destruction
-            Destroy(this.gameObject);
+
+            if (_destroyedByCollision) { Destroy(this.gameObject); }
         }
+
+        //private void OnDestroy()
+        //{
+        //    // instantiate vfx/sfx for generic projectile destruction
+        //}
     } 
 }

@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &185919192121211582
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1584544107224573558, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_BodyType
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1584544107224573558, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_GravityScale
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4076310636046683645, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: _damage
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4076310636046683645, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: _lifetime
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 4076310636046683645, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: ProjectileDamageType
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371472707967800682, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5507316010820968361, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_Name
+      value: PlayerRangedProjectile
+      objectReference: {fileID: 0}
+    - target: {fileID: 5507316010820968361, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_TagString
+      value: PlayerProjectile
+      objectReference: {fileID: 0}
+    - target: {fileID: 7829321123362652030, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_Color.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7829321123362652030, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_Color.g
+      value: 0.3117892
+      objectReference: {fileID: 0}
+    - target: {fileID: 7829321123362652030, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7928174012217985005, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_Radius
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7928174012217985005, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}
+      propertyPath: m_ExcludeLayers.m_Bits
+      value: 8
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4a4a93c96f5d2144eaee81494f82f48a, type: 3}

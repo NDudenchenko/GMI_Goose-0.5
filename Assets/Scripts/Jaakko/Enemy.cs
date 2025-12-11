@@ -29,6 +29,8 @@ namespace AG3958
         private HealthCollectable _healthDrop;
         [SerializeField] private GameObject _normalDeathParticles;
         [SerializeField] private GameObject _instantDeathParticles;
+        private bool _isDying = false;
+        public bool IsDying { get { return _isDying; } }
 
         private void Awake()
         {
@@ -39,22 +41,20 @@ namespace AG3958
 
         private void OnCollisionEnter2D(Collision2D coll)
         {
+            if (coll.collider.CompareTag("Speed")) { Kill(true); }
             if (coll.collider.CompareTag("Player"))
             {
-                PlayerController pc = coll.gameObject.GetComponent<PlayerController>();
-                if (pc.BoosterActive || pc.EruptionActive)
-                {
-                    Kill(true);
-                }
-                else if (_doesContactDamage)
+                PlayerController pcon = coll.gameObject.GetComponent<PlayerController>();
+                PlayerCore pcor = coll.gameObject.GetComponentInParent<PlayerCore>();
+                if (_doesContactDamage && !pcor.IsInvincible)
                 {
                     if (_knockbackEnabled)
                     {
                         Vector2 kbVector = (Vector2)coll.transform.position - (Vector2)transform.position;
                         kbVector.Scale(_knockbackForceMultiplier);
-                        pc.Launch(kbVector * _knockbackStrength, true);
+                        pcon.Launch(kbVector * _knockbackStrength, true);
                     }
-                    PlayerCore.HealthChangeEvent?.Invoke(_contactDamage, _contactInvokesIFrames);
+                    PlayerCore.HealthChangeEvent?.Invoke(-_contactDamage, _contactInvokesIFrames);
                 }
             }
         }
@@ -62,7 +62,7 @@ namespace AG3958
         public void TakeDamage(float damage) 
         {
             _currentHealth -= damage;
-            if (_currentHealth < 0) { Kill(false); }
+            if (_currentHealth <= 0) { Kill(false); }
             else { } // enemy-specific damaged vfx/sfx
         }
 
@@ -86,6 +86,7 @@ namespace AG3958
                 }
             }
             PlayerCore.PointChangeEvent?.Invoke(_scoreValue);
+            _isDying = true;
             Destroy(this.gameObject);
         }
     }

@@ -8,6 +8,7 @@ TagManager:
   - Enemy
   - EnemyProjectile
   - DestBlock
+  - Speed
   layers:
   - Default
   - TransparentFX

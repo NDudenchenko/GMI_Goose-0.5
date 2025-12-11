@@ -2,6 +2,8 @@ using UnityEngine;
 using System.Collections;
 using System.Net;
 using UnityEngine.InputSystem.LowLevel;
+using System.Linq.Expressions;
+
 
 
 
@@ -16,7 +18,7 @@ namespace AG3958
     /// <summary>
     /// Player control and movement script.
     /// </summary>
-    [RequireComponent (typeof(Rigidbody2D), typeof(Collider2D), typeof(PlayerCore))]
+    [RequireComponent (typeof(Rigidbody2D), typeof(Collider2D))]
     public class PlayerController : MonoBehaviour
     {
         // Object references
@@ -37,6 +39,7 @@ namespace AG3958
         private bool _facingRight = true;
         private bool _aimingUp = false;
         private bool _aimingDown = false;
+        private bool _isStunned = false;
         private bool _jumpBuffer = false;
         private bool _fireBuffer = false;
         private bool _chargeBuffer = false;
@@ -51,7 +54,7 @@ namespace AG3958
         private bool _eruptionReady = false;
         private bool _eruptionGraceActive = false;
 
-        private WaitForFixedUpdate _waitForFixedUpdate = new WaitForFixedUpdate();
+        private readonly WaitForFixedUpdate _waitForFixedUpdate = new WaitForFixedUpdate();
 
         // Properties for animation state script
         public bool ApplyMoveRight { get { return _applyMoveRight; } }
@@ -60,6 +63,7 @@ namespace AG3958
         public bool FacingRight {  get { return _facingRight; } }
         public bool AimingUp {  get { return _aimingUp; } }
         public bool AimingDown {  get { return _aimingDown; } }
+        public bool IsStunned { get { return _isStunned; } }
         public bool IsGrounded { get { return _isGrounded; } }
         public bool CoyoteActive { get { return _coyoteActive; } }
         public bool ChargeActive { get { return _chargeActive; } }
@@ -87,6 +91,9 @@ namespace AG3958
         [SerializeField] private float _jumpPower = 7.5f;
         [SerializeField] private float _coyoteDuration = 0.5f;
         [SerializeField] private float _wallSlideFriction = 1.0f;
+        [Header("Hitstun Time")]
+        [SerializeField] private float _weakKnockbackStunTime = 0.5f;
+        [SerializeField] private float _strongKnockbackStunTime = 1.5f;
         [Header("Melee Attack")]
         [SerializeField] private GameObject _meleeProjectilePrefab;
         [SerializeField] private float _meleeCooldown = 0.5f;
@@ -108,6 +115,7 @@ namespace AG3958
         [SerializeField] private float _boosterActivationTime;
         [SerializeField] private float _boosterGraceTime;
         [SerializeField] private Color _boosterActiveColor;
+        [SerializeField] private GameObject _speedActiveAuraObject;
         [Header("Volcanic Eruption")]
         [Tooltip("Horizontal movement force while Volcanic Eruption is active")]
         [SerializeField] private float _eruptionAdjustSpeed = 1.0f;
@@ -130,6 +138,7 @@ namespace AG3958
         private float _groundCheckRayOffset;
         private float _physMatFriction;
         private Color _playerColor;
+        private Color _playerInvulnerableColor;
         private float _jumpCooldownTimer = 0.0f;
         private float _meleeCooldownTimer = 0.0f;
         private float _fireCooldownTimer = 0.0f;
@@ -140,11 +149,16 @@ namespace AG3958
         private float _eruptionGrace = 0.0f;
         private Vector2 _eruptionImpulseForce;
         private Vector2 _meleeOffset;
+        private Vector2 _rangedOffset;
+        private Vector2 _flipVector;
+        private Color _boosterAuraColor;
+        private Color _eruptionAuraColor;
+        private SpriteRenderer _speedAuraSprite;
 
         private void Awake()
         {
             _transform = transform;
-            _playerCore = GetComponent<PlayerCore>();
+            _playerCore = GetComponentInParent<PlayerCore>();
             _rb = GetComponent<Rigidbody2D>();
             _coll = GetComponent<Collider2D>();
             _envLayerMask = LayerMask.GetMask("Default");
@@ -155,6 +169,10 @@ namespace AG3958
             _rightEdge = (Vector2)_transform.position + _edgeOffset;
             _playerSprite = GetComponent<SpriteRenderer>();
             _playerColor = _playerSprite.color;
+            _playerInvulnerableColor = new Color(_playerColor.r, _playerColor.g, _playerColor.b, 0.5f);
+            _boosterAuraColor = new Color(_boosterActiveColor.r, _boosterActiveColor.g, _boosterActiveColor.b, 0.3f);
+            _eruptionAuraColor = new Color(_eruptionActiveColor.r, _eruptionActiveColor.g, _eruptionActiveColor.b, 0.3f);
+            _speedAuraSprite = _speedActiveAuraObject.GetComponent<SpriteRenderer>();
             _resetCoyoteDuration = _coyoteDuration;
             _horizontalForce = new Vector2(_movementSpeed, 0);
             _baseJumpForce = new Vector2(0, _jumpPower);
@@ -164,6 +182,9 @@ namespace AG3958
             _eruptionImpulseForce = new Vector2(0.0f, _eruptionImpulseSpeed);
             _originalMoveSpeed = _movementSpeed;
             _originalMaxSpeed = _maximumSpeed;
+            _flipVector = new Vector2(0f, 180f);
+            _meleeOffset = new Vector2(1.25f, 0f);
+            _rangedOffset = new Vector2(0.75f, 0f);
         }
 
         private void Update()
@@ -171,29 +192,53 @@ namespace AG3958
             _jumpCooldownTimer += Time.deltaTime;
             _meleeCooldownTimer += Time.deltaTime;
             _fireCooldownTimer += Time.deltaTime;
+
+            if (_playerCore.IsInvincible) _playerSprite.color = _playerInvulnerableColor;
+            else if (_eruptionReady || _eruptionActive || _boosterActive || _boosterGraceActive) { }
+            else _playerSprite.color = _playerColor;
+
             if (Input.GetKey(_leftKey)) { _applyMoveLeft = true; }
             else { _applyMoveLeft = false; }
+           
             if (Input.GetKey(_rightKey)) { _applyMoveRight = true; }
             else { _applyMoveRight = false; }
-            if (_applyMoveLeft && !_applyMoveRight) { _facingRight = false; }
-            else if (_applyMoveRight && !_applyMoveLeft) { _facingRight = true; }
-            if (Input.GetKey(_downKey) && _isGrounded && !_isCrouched) { _isCrouched = true; }
-            else { _isCrouched = false; }
+            
+            if (!_coyoteActive)
+            {
+                if (_applyMoveLeft && !_applyMoveRight && _facingRight)
+                {
+                    _transform.Rotate(_flipVector);
+                    _facingRight = false; 
+                }
+                else if (_applyMoveRight && !_applyMoveLeft && !_facingRight)
+                {
+                    _transform.Rotate(_flipVector);
+                    _facingRight = true;
+                }
+                if (Input.GetKey(_downKey) && _isGrounded) { _isCrouched = true; }
+                else { _isCrouched = false; }
+            }
+           
             if (Input.GetKey(_downKey) && !_isCrouched) { _aimingDown = true; }
             else { _aimingDown = false; }
-            if (Input.GetKey(_upKey) && !_aimingUp) { _aimingUp = true; }
+            
+            if (Input.GetKey(_upKey)) { _aimingUp = true; }
             else { _aimingUp = false; }
+            
             if (Input.GetKeyDown(_jumpKey) && _isGrounded) { _jumpBuffer = true; }
+           
             if (Input.GetKeyDown(_meleeKey) && _playerCore.HasWeapon && _meleeCooldownTimer >= _meleeCooldown) { _meleeBuffer = true; }
-            if (Input.GetKeyUp(_fireKey))
+           
+            if (Input.GetKeyUp(_fireKey) && (!_eruptionActive && !_eruptionReady))
             {
                 if (_chargeReady) { _chargeBuffer = true; }
-                else { _fireBuffer = true; }
+                else if (_fireCooldownTimer >= _fireCooldown && _playerCore.PlayerMana >= _fireCost) { _fireBuffer = true; }
                 _chargeActive = false;
             }
-            if (Input.GetKey(_fireKey) && _playerCore.HasMagic && _fireCooldownTimer >= _fireCooldown)
+           
+            if (Input.GetKey(_fireKey) && _playerCore.HasMagic && (!_eruptionActive && !_eruptionReady) && _fireCooldownTimer >= _fireCooldown)
             {
-                if (_playerCore.HasCharge && !_chargeBuffer)
+                if (_playerCore.HasCharge && !_chargeBuffer && _playerCore.PlayerMana >= _chargeCost)
                 {
                     if (!_chargeReady)
                     {
@@ -201,8 +246,9 @@ namespace AG3958
                         _chargeTimer += Time.deltaTime;
                         if (_chargeTimer >= _chargeTime) { _chargeReady = true; }
                     }
+                    if (_playerCore.ManaRegenActive) _playerCore.StopRecharge();
                 }
-                else _fireBuffer = true;
+                else if (_playerCore.PlayerMana >= _fireCost) _fireBuffer = true;
             }
             else
             {
@@ -293,9 +339,9 @@ namespace AG3958
             else if (_coyoteActive) _isGrounded = true;
             else _isGrounded = false;
 
-            if (_applyMoveLeft && _rb.linearVelocityX >= _maximumSpeed * -1) { _rb.AddForce(-_horizontalForce, ForceMode2D.Force); }
-            if (_applyMoveRight && _rb.linearVelocityX <= _maximumSpeed) { _rb.AddForce(_horizontalForce, ForceMode2D.Force); }
-            if (_jumpBuffer)
+            if (_applyMoveLeft && _rb.linearVelocityX >= _maximumSpeed * -1 && !_isStunned) { _rb.AddForce(-_horizontalForce, ForceMode2D.Force); }
+            if (_applyMoveRight && _rb.linearVelocityX <= _maximumSpeed && !_isStunned) { _rb.AddForce(_horizontalForce, ForceMode2D.Force); }
+            if (_jumpBuffer && !_isStunned)
             {
                 _rb.AddForce(_jumpForce, ForceMode2D.Impulse);
                 if (_eruptionReady)
@@ -311,26 +357,39 @@ namespace AG3958
                 _jumpBuffer = false;
             }
 
-            if (_meleeBuffer)
+            if (_meleeBuffer && !_isStunned)
             {
                 if (_facingRight) Instantiate(_meleeProjectilePrefab, (Vector2)_transform.position + _meleeOffset, Quaternion.identity);
                 else Instantiate(_meleeProjectilePrefab, (Vector2)_transform.position - _meleeOffset, Quaternion.identity);
+                _meleeCooldownTimer = 0.0f;
+                _meleeBuffer = false;
             }
-            if (_fireBuffer) { FireProjectile(_fireProjectilePrefab); }
-            if (_chargeBuffer) { FireProjectile(_chargeProjectilePrefab); }
+            if (_fireBuffer && !_isStunned)
+            {
+                FireProjectile(_fireProjectilePrefab);
+                PlayerCore.ManaChangeEvent?.Invoke(-_fireCost);
+                _fireBuffer = false;
+            }
+            if (_chargeBuffer && !_isStunned)
+            { 
+                FireProjectile(_chargeProjectilePrefab);
+                PlayerCore.ManaChangeEvent?.Invoke(-_chargeCost);
+                _chargeBuffer = false;
+            }
         }
 
         private void FireProjectile(GameObject projectile)
         {
-            Rigidbody2D pRB = Instantiate(projectile, _transform.position, _transform.rotation).GetComponent<Rigidbody2D>();
-            if (_facingRight)
-            { 
-                pRB.linearVelocity = Vector2.right * _projSpeed;
-            }
-            else
-            { 
-                pRB.linearVelocity = Vector2.left * -_projSpeed;
-            }
+            Vector2 aimVector;
+            if (_aimingUp && (!_applyMoveLeft && !_applyMoveRight)) aimVector = _transform.up;
+            else if (_aimingDown && !_isGrounded && (!_applyMoveLeft && !_applyMoveRight)) aimVector = _transform.up * -1;
+            else if (_aimingUp) aimVector = _transform.right + _transform.up;
+            else if (_aimingDown) aimVector = _transform.right - _transform.up;
+            else aimVector = _transform.right;
+            aimVector.Normalize();
+            Rigidbody2D pRB = Instantiate(projectile, (Vector2)_transform.position + (_rangedOffset * aimVector), _transform.rotation).GetComponent<Rigidbody2D>();
+            pRB.linearVelocity = aimVector * _projSpeed;
+            _fireCooldownTimer = 0.0f;
         }
 
         private void ActivateBooster()
@@ -340,6 +399,8 @@ namespace AG3958
             _horizontalForce = new Vector2(_movementSpeed, 0.0f);
             _boosterActive = true;
             _playerSprite.color = _boosterActiveColor;
+            _speedAuraSprite.color = _boosterAuraColor;
+            _speedActiveAuraObject.SetActive(true);
         }
 
         private void DeactivateBooster()
@@ -349,6 +410,7 @@ namespace AG3958
             _movementSpeed = _originalMoveSpeed;
             _maximumSpeed = _originalMaxSpeed;
             _horizontalForce = new Vector2(_movementSpeed, 0.0f);
+            _speedActiveAuraObject.SetActive(false);
         }
 
         private void ActivateEruption()
@@ -357,6 +419,8 @@ namespace AG3958
             _movementSpeed = _eruptionAdjustSpeed;
             _maximumSpeed = _eruptionAdjustSpeed;
             _rb.gravityScale = 0.0f;
+            _speedAuraSprite.color = _eruptionAuraColor;
+            _speedActiveAuraObject.SetActive(true);
         }
 
         private void DeactivateEruption()
@@ -366,6 +430,7 @@ namespace AG3958
             _movementSpeed = _originalMoveSpeed;
             _maximumSpeed = _originalMaxSpeed;
             _eruptionGraceActive = true;
+            _speedActiveAuraObject.SetActive(false);
         }
 
         /// <summary>
@@ -384,7 +449,13 @@ namespace AG3958
         /// <param name="resetMomentum">Whether the player's velocity is reset before the impulse is applied</param>
         public void Launch(Vector2 launchForce, bool resetMomentum)
         {
-            if (resetMomentum) { _rb.linearVelocity = Vector2.zero; }
+            if (resetMomentum)
+            { 
+                _rb.linearVelocity = Vector2.zero;
+                StartCoroutine(HitStun(_strongKnockbackStunTime));
+            }
+            else StartCoroutine(HitStun(_weakKnockbackStunTime));
+            
             _rb.AddForce(launchForce, ForceMode2D.Impulse);
         }
 
@@ -399,6 +470,11 @@ namespace AG3958
             {
                 if (Physics2D.Raycast(_leftEdge, Vector2.left, _groundCheckRayOffset * 20, _envLayerMask))
                 {
+                    if (!_facingRight)
+                    {
+                        _transform.Rotate(_flipVector);
+                        _facingRight = true;
+                    }
                     _jumpForce = _wallJumpForceRight;
                     if (_playerCore.HasWallHang)
                     {
@@ -419,6 +495,11 @@ namespace AG3958
                 }
                 else if (Physics2D.Raycast(_rightEdge, Vector2.right, _groundCheckRayOffset * 20, _envLayerMask))
                 {
+                    if (_facingRight)
+                    {
+                        _transform.Rotate(_flipVector);
+                        _facingRight = false;
+                    }
                     _jumpForce = _wallJumpForceLeft;
                     if (_playerCore.HasWallHang)
                     {
@@ -450,6 +531,39 @@ namespace AG3958
             }
             _isGrounded = false;
             _coyoteActive = false;
+        }
+
+        private IEnumerator HitStun(float time)
+        {
+            _isStunned = true;
+            _chargeReady = false;
+            _eruptionReady = false;
+            yield return new WaitForSeconds(time);
+            _isStunned = false;
+        }
+
+        private void OnEnable()
+        {
+            _applyMoveRight = false;
+            _applyMoveLeft = false;
+            _isCrouched = false;
+            _facingRight = true;
+            _aimingUp = false;
+            _aimingDown = false;
+            _isStunned = false;
+            _jumpBuffer = false;
+            _fireBuffer = false;
+            _chargeBuffer = false;
+            _meleeBuffer = false;
+            _chargeActive = false;
+            _chargeReady = false;
+            _isGrounded = false;
+            _coyoteActive = false;
+            _boosterActive = false;
+            _boosterGraceActive = false;
+            _eruptionActive = false;
+            _eruptionReady = false;
+            _eruptionGraceActive = false;
         }
     }
 }
