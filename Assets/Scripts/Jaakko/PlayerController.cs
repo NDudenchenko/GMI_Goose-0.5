@@ -1,11 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using System.Net;
-using UnityEngine.InputSystem.LowLevel;
-using System.Linq.Expressions;
-
-
-
 
 #if UNITY_EDITOR
 using Physics2D = Nomnom.RaycastVisualization.VisualPhysics2D;
@@ -542,6 +536,7 @@ namespace AG3958
             _isStunned = false;
         }
 
+        // Flush states on enable
         private void OnEnable()
         {
             _applyMoveRight = false;
